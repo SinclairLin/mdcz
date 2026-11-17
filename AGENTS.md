@@ -9,6 +9,12 @@
   - Linter & Format: `pnpm format` (Biome)
   - Full Check: `pnpm check`
 
+## Fork Ownership & Upstream Policy
+- This project is maintained independently in `SinclairLin/mdcz`; `ShotHeadman/mdcz` is the upstream repository.
+- Do not push changes to upstream, open pull requests against upstream, or merge this project's changes into upstream.
+- Development, releases, and Docker image publishing must use this project's own repository and workflows; upstream approval or merging is not a release prerequisite.
+- Identify remotes by their repository URLs, not their names: `origin` may still point to upstream.
+
 ## 2. Core Mindset: Aggressive Modernization & Anti-Bloat
 - **Zero Legacy Baggage**:
   - The project is under active development and testing. **Zero backward compatibility concerns for application code.** Released database migrations must not be modified; subsequent database changes require new migrations.

@@ -1,4 +1,4 @@
-const RELEASE_DOWNLOAD_URL = "https://github.com/ShotHeadman/mdcz/releases/download";
+const RELEASE_DOWNLOAD_URL = "https://github.com/SinclairLin/mdcz/releases/download";
 
 export interface UpdateDeliveryInput {
   platform: NodeJS.Platform;

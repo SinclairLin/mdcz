@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { resolveManualDownloadUrl, type UpdateDeliveryInput } from "./updateDelivery";
 
-const RELEASE_URL = "https://github.com/ShotHeadman/mdcz/releases/tag/v1.2.3";
-const ASSET_URL = "https://github.com/ShotHeadman/mdcz/releases/download/v1.2.3";
+const RELEASE_URL = "https://github.com/SinclairLin/mdcz/releases/tag/v1.2.3";
+const ASSET_URL = "https://github.com/SinclairLin/mdcz/releases/download/v1.2.3";
 
 const base: UpdateDeliveryInput = {
   platform: "win32",

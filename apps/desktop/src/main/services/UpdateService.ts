@@ -6,7 +6,7 @@ import electronUpdater, { type BaseUpdater } from "electron-updater";
 import { isWindowsPortable } from "../appIdentity";
 import { resolveManualDownloadUrl } from "../updateDelivery";
 
-const LATEST_RELEASE_API_URL = "https://api.github.com/repos/ShotHeadman/mdcz/releases/latest";
+const LATEST_RELEASE_API_URL = "https://api.github.com/repos/SinclairLin/mdcz/releases/latest";
 // electron-updater downloads through this fixed partition; checking through it too keeps both on one proxy route.
 const UPDATER_SESSION_PARTITION = "electron-updater";
 

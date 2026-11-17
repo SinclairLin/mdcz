@@ -14,6 +14,7 @@
 - Do not push changes to upstream, open pull requests against upstream, or merge this project's changes into upstream.
 - Development, releases, and Docker image publishing must use this project's own repository and workflows; upstream approval or merging is not a release prerequisite.
 - Identify remotes by their repository URLs, not their names: `origin` may still point to upstream.
+- Release by updating both package versions with `node scripts/bump-version.mjs X.Y.Z`, committing, and pushing the matching `vX.Y.Z` tag to `SinclairLin/mdcz`. The tag workflow publishes the GitHub Release and `ghcr.io/sinclairlin/mdcz:X.Y.Z`; it does not require a PR or a version-named branch.
 
 ## 2. Core Mindset: Aggressive Modernization & Anti-Bloat
 - **Zero Legacy Baggage**:

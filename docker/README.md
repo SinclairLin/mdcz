@@ -13,7 +13,7 @@ MDCz 官方提供多架构 Docker 镜像（支持 Linux x86_64 / amd64 与 ARM64
 services:
   mdcz:
     # 请前往 Releases 页面查看最新版本号（例如 0.15.0，不要带 v）
-    image: ghcr.io/shotheadman/mdcz:0.15.0
+    image: ghcr.io/sinclairlin/mdcz:0.22.1
     container_name: mdcz
     restart: unless-stopped
     stop_grace_period: 30s
@@ -110,7 +110,7 @@ docker compose up -d
 > `./data` 中包含登录账号凭据、自定义 TOML 规则、SQLite 数据库及任务缓存。恢复时只需解压回原处并启动容器。
 
 ### 版本升级
-1. 前往 [Releases 页面](https://github.com/ShotHeadman/mdcz/releases) 确认最新版本号。
+1. 前往 [Releases 页面](https://github.com/SinclairLin/mdcz/releases) 确认最新版本号。
 2. 修改 `docker-compose.yml`（或 `.env`）中的版本号。
 3. 执行更新：
    ```sh

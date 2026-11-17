@@ -1,13 +1,13 @@
 {
   "name": "mdcz",
-  "version": "0.22.0",
+  "version": "0.22.1",
   "description": "MDCz - media metadata scraper built on Electron",
   "private": true,
   "type": "module",
-  "homepage": "https://github.com/ShotHeadman/mdcz",
+  "homepage": "https://github.com/SinclairLin/mdcz",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ShotHeadman/mdcz.git"
+    "url": "https://github.com/SinclairLin/mdcz.git"
   },
   "author": {
     "name": "ShotHeadman",

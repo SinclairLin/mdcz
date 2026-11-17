@@ -23,7 +23,7 @@ directories:
 # Generates latest*.yml and blockmaps for electron-updater; CI uploads them via action-gh-release.
 publish:
   provider: github
-  owner: ShotHeadman
+  owner: SinclairLin
   repo: mdcz
 
 files:

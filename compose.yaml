@@ -1,6 +1,6 @@
 services:
   mdcz:
-    image: ghcr.io/shotheadman/mdcz:${MDCZ_VERSION:?Set MDCZ_VERSION in .env to a published release version (e.g. 0.15.0)}
+    image: ghcr.io/sinclairlin/mdcz:${MDCZ_VERSION:?Set MDCZ_VERSION in .env to a published release version (e.g. 0.15.0)}
     restart: unless-stopped
     stop_grace_period: 30s
     ports:

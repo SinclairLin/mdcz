@@ -5,7 +5,11 @@ export {
   LlmApiClient,
   normalizeLlmBaseUrl,
 } from "../scrape/translate/engines/LlmApiClient";
-export { cleanTranslationOutput, OpenAiTranslator } from "../scrape/translate/engines/OpenAiTranslator";
+export {
+  cleanTranslationOutput,
+  OpenAiTranslator,
+  parseLlmJsonObject,
+} from "../scrape/translate/engines/OpenAiTranslator";
 export { ensureTargetChinese, normalizeNewlines } from "../scrape/translate/shared";
 export type { LanguageTarget, TranslationMappingStore } from "../scrape/translate/types";
 export { toTarget } from "../scrape/translate/types";

@@ -23,6 +23,7 @@ import {
   type LlmApiClient,
   normalizeLlmBaseUrl,
   normalizeNewlines,
+  parseLlmJsonObject,
   toLlmTextRequest,
   toTarget,
 } from "../scrape";
@@ -209,7 +210,7 @@ const translateChunk = async (
   );
 
   if (!content) throw new Error("LLM returned an empty response");
-  const { translations } = batchTranslationSchema.parse(JSON.parse(content));
+  const { translations } = parseLlmJsonObject(content, batchTranslationSchema);
   if (translations.length !== texts.length)
     throw new Error("LLM returned a batch translation count that does not match input");
   return translations;

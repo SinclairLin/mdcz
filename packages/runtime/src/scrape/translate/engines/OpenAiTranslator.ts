@@ -22,9 +22,68 @@ const OPENAI_RETRY_STATUS_CODE = 429;
 const RETRY_AFTER_CAP_MS = 15_000;
 const REQUEST_TIMEOUT_PATTERN =
   /request timeout|timed ?out|timeout \(\d+ ms\)|error reading response stream|kind: *body|econnreset|etimedout/iu;
-const COMPLETE_LEADING_THINK_PATTERN = /^<think>[\s\S]*?<\/think>\s*/iu;
+const COMPLETE_LEADING_THINK_PATTERN =
+  /^(?:(?:<think>)?[\s\S]*?<\/think>\s*|(?:<thought>)?[\s\S]*?<\/thought>\s*|(?:\[think\])?[\s\S]*?\[\/think\]\s*)+/iu;
 const TRANSLATION_ONLY_INSTRUCTION = "只输出最终译文，不要输出思考过程、解释、提示词或原文。";
 const JSON_TRANSLATION_INSTRUCTION = '只输出 JSON 对象，格式为 {"translation":"最终译文"}，不要添加其他字段。';
+
+const extractJsonObjectCandidates = (text: string): string[] => {
+  const objects: string[] = [];
+  for (let start = text.indexOf("{"); start !== -1; start = text.indexOf("{", start + 1)) {
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let index = start; index < text.length; index += 1) {
+      const char = text[index];
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (char === "\\") {
+          escaped = true;
+        } else if (char === '"') {
+          inString = false;
+        }
+        continue;
+      }
+      if (char === '"') {
+        inString = true;
+      } else if (char === "{") {
+        depth += 1;
+      } else if (char === "}") {
+        depth -= 1;
+        if (depth === 0) {
+          const candidate = text.slice(start, index + 1);
+          try {
+            JSON.parse(candidate);
+            objects.push(candidate);
+            start = index;
+          } catch {
+            // Keep scanning from the next `{` when prose contains non-JSON braces.
+          }
+          break;
+        }
+      }
+    }
+  }
+  return objects;
+};
+
+export const parseLlmJsonObject = <T>(content: string | null | undefined, schema: z.ZodType<T>): T => {
+  const cleaned = (content ?? "").replace(COMPLETE_LEADING_THINK_PATTERN, "").trim();
+  const candidates = extractJsonObjectCandidates(cleaned);
+  let lastError: unknown;
+  for (let index = candidates.length - 1; index >= 0; index -= 1) {
+    try {
+      return schema.parse(JSON.parse(candidates[index]));
+    } catch (error) {
+      lastError ??= error;
+    }
+  }
+  if (lastError) {
+    throw lastError;
+  }
+  return schema.parse(JSON.parse(cleaned));
+};
 
 const textTranslationSchema = z.strictObject({ translation: z.string().trim().min(1) });
 const metadataTranslationSchema = z.strictObject({
@@ -74,7 +133,7 @@ export const cleanTranslationOutput = (
   let translated = cleaned;
   if (structured) {
     try {
-      translated = textTranslationSchema.parse(JSON.parse(cleaned)).translation;
+      translated = parseLlmJsonObject(cleaned, textTranslationSchema).translation;
     } catch {
       return null;
     }
@@ -166,7 +225,7 @@ export class OpenAiTranslator {
     ].join("\n");
     const content = await this.requestText(config, prompt, signal, LLM_METADATA_TRANSLATION_SCHEMA);
     try {
-      const parsed = metadataTranslationSchema.parse(JSON.parse(content ?? ""));
+      const parsed = parseLlmJsonObject(content, metadataTranslationSchema);
       if (
         (input.title === null) !== (parsed.title === null) ||
         (input.plot === null) !== (parsed.plot === null) ||
@@ -209,9 +268,7 @@ export class OpenAiTranslator {
     ].join("\n");
     const content = await this.requestText(config, prompt, signal, LLM_FILE_NUMBER_SCHEMA);
     try {
-      // Without a JSON output mode, models may wrap the object in a think block or a code fence.
-      const json = (content ?? "").replace(COMPLETE_LEADING_THINK_PATTERN, "").match(/\{[\s\S]*\}/u)?.[0] ?? "";
-      return fileNumberSchema.parse(JSON.parse(json)).number;
+      return parseLlmJsonObject(content, fileNumberSchema).number;
     } catch (error) {
       throw new Error(`AI number reading returned invalid output: ${toErrorMessage(error)}`, { cause: error });
     }

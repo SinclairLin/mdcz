@@ -32,6 +32,7 @@ export * from "./restGate";
 export * from "./ScrapeRunner";
 export * from "./TranslateService";
 export * from "./translate/engines/LlmApiClient";
+export { parseLlmJsonObject } from "./translate/engines/OpenAiTranslator";
 export * from "./translate/shared";
 export * from "./translate/types";
 export * from "./watermarkDirectory";

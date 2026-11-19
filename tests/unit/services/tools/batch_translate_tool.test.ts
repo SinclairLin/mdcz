@@ -278,7 +278,11 @@ describe("batch NFO translation tool", () => {
         nfoIgnoreFields: ["director"],
       },
     });
-    const generateText = vi.fn().mockResolvedValue('{"translations":["相同标题","剧情一"]}');
+    const generateText = vi
+      .fn()
+      .mockResolvedValue(
+        '将输入的 JSON 数组中的每一项翻译为简体中文。\n</think>\n将输入的 JSON 翻译如下：\n```json\n{"translations":["相同标题","剧情一"]}\n```',
+      );
     const entries = [
       createEntry({
         fileInfo: { filePath: join(root, "AAA-001.mp4"), fileName: "AAA-001.mp4", number: "AAA-001" },

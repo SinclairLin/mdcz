@@ -1,7 +1,13 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { type RuntimeLogger, runtimeLoggerService, toErrorMessage } from "../shared";
-import { CreatedDirectories, copyFileBytes, outputFileSystem } from "./outputFileSystem";
+import {
+  COPIED_BACKUP_SUFFIX,
+  CreatedDirectories,
+  copyFileBytes,
+  outputFileSystem,
+  restoreCopiedBackup,
+} from "./outputFileSystem";
 import { publicationJournal, TemporaryPaths } from "./publicationJournal";
 import type { PublicationFileSystem } from "./types";
 
@@ -36,8 +42,13 @@ export class WriteOutput {
   ): Promise<TResult> {
     const directories = options.directories ?? new CreatedDirectories(this.fileSystem);
     const staged: Array<{ artifact: WriteArtifact; temporaryPath?: string; size?: number }> = [];
-    const replacements: Array<{ targetPath: string; backupPath?: string; linkedBackup?: boolean; installed: boolean }> =
-      [];
+    const replacements: Array<{
+      targetPath: string;
+      backupPath?: string;
+      linkedBackup?: boolean;
+      copiedBackup?: boolean;
+      installed: boolean;
+    }> = [];
     const temporaryPaths = new TemporaryPaths();
     let committed = false;
     const stagingId = randomUUID();
@@ -146,21 +157,40 @@ export class WriteOutput {
             ));
           if (!replacement.linkedBackup) {
             if (direct) publicationJournal.record(backupPath, targetPath);
-            await this.fileSystem.rename(targetPath, backupPath);
+            try {
+              await this.fileSystem.rename(targetPath, backupPath);
+            } catch (error) {
+              // Some cloud mounts refuse to rename a file with EIO. Its bytes are copied aside instead and the
+              // target is overwritten where it is, unless that would write through a symlink or another hard link.
+              if (
+                (error as NodeJS.ErrnoException).code !== "EIO" ||
+                !("data" in artifact) ||
+                !existingTarget.isFile() ||
+                existingTarget.nlink !== 1
+              )
+                throw error;
+              const copiedPath = `${targetPath}${COPIED_BACKUP_SUFFIX}${stagingId}`;
+              temporaryPaths.add(copiedPath);
+              await copyFileBytes(targetPath, copiedPath);
+              await this.fileSystem.flush?.(copiedPath);
+              temporaryPaths.retainForRecovery(copiedPath, targetPath);
+              replacement.backupPath = copiedPath;
+              replacement.copiedBackup = true;
+              if (direct) publicationJournal.forget(backupPath);
+            }
           }
-          replacement.backupPath = backupPath;
+          replacement.backupPath ??= backupPath;
         }
         replacements.push(replacement);
-        if (direct) {
-          // Journaled while it is written, so a crash leaves no truncated file under a final name and the
-          // original it replaces goes back.
-          publicationJournal.record(targetPath);
+        if (direct || replacement.copiedBackup) {
+          if (!replacement.copiedBackup) publicationJournal.record(targetPath);
           // Set first, so a failed write is taken back like a finished one.
           replacement.installed = true;
           await write(artifact, targetPath, size, true);
-          publicationJournal.forget(targetPath);
-          // The target is whole from here on, so a crash before the commit drops the original instead of restoring it.
-          if (replacement.backupPath) publicationJournal.record(replacement.backupPath);
+          if (!replacement.copiedBackup) {
+            publicationJournal.forget(targetPath);
+            if (replacement.backupPath) publicationJournal.record(replacement.backupPath);
+          }
           continue;
         }
         try {
@@ -202,6 +232,11 @@ export class WriteOutput {
         for (const replacement of replacements.toReversed()) {
           const { backupPath, targetPath } = replacement;
           try {
+            if (backupPath && replacement.copiedBackup) {
+              await restoreCopiedBackup(this.fileSystem, backupPath, targetPath);
+              temporaryPaths.add(backupPath);
+              continue;
+            }
             if (backupPath && (replacement.installed || !replacement.linkedBackup))
               await this.fileSystem.rename(backupPath, targetPath);
             else if (backupPath) temporaryPaths.add(backupPath);

@@ -31,6 +31,17 @@ describe("WriteOutput", () => {
     await output.install([{ targetPath, data: "new" }], { commit: () => undefined });
     await expect(readFile(targetPath, "utf8")).resolves.toBe("new");
     expect(flush).not.toHaveBeenCalled();
+    const refused = Object.assign(new Error("rename refused"), { code: "EIO" });
+    await new WriteOutput({
+      ...outputFileSystem,
+      link: async () => {
+        throw refused;
+      },
+      rename: async () => {
+        throw refused;
+      },
+    }).install([{ targetPath, data: "translated" }], { commit: () => undefined });
+    await expect(readFile(targetPath, "utf8")).resolves.toBe("translated");
     const oldPoster = path.join(directory, "old-poster.jpg");
     const newPoster = path.join(directory, "new-poster.jpg");
     await writeFile(oldPoster, "poster");
@@ -166,7 +177,10 @@ describe("WriteOutput", () => {
       await writeFile(poster, "old poster");
       await writeFile(downloaded, "new poster");
       const original = new Set([nfo, poster]);
-      const rename = vi.fn(outputFileSystem.rename);
+      const rename = vi.fn(async (source: string, target: string) => {
+        if (source === nfo) throw Object.assign(new Error("rename refused"), { code: "EIO" });
+        await outputFileSystem.rename(source, target);
+      });
       const copyFile = vi.fn(async () => {
         throw Object.assign(new Error("copyfile refused"), { code: "EIO" });
       });
@@ -205,8 +219,7 @@ describe("WriteOutput", () => {
       expect(await readdir(staging)).toEqual([]);
       // Cloud mounts refuse the kernel's copy of a fresh file, so a direct write copies bytes itself.
       expect(copyFile).not.toHaveBeenCalled();
-      // Only files that were there before the publication are ever renamed: aside, and back when it fails.
-      expect(rename.mock.calls.length).toBe(failure ? 4 : 2);
+      expect(rename.mock.calls.length).toBe(failure ? 3 : 2);
       for (const [source] of rename.mock.calls)
         expect(original.has(source) || source.includes(".mdcz-backup-")).toBe(true);
       expect(journal.size).toBe(0);

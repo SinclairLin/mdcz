@@ -54,6 +54,23 @@ export const copyFileBytes = async (source: string, target: string): Promise<voi
   await pipeline(createReadStream(source), createWriteStream(target));
 };
 
+export const COPIED_BACKUP_SUFFIX = ".mdcz-direct-backup-";
+
+export const restoreCopiedBackup = async (
+  fileSystem: PublicationFileSystem,
+  backup: string,
+  target: string,
+): Promise<void> => {
+  try {
+    const existing = await fileSystem.lstat(target);
+    if (!existing.isFile() || existing.nlink !== 1) throw new Error(`Cannot restore backup over ${target}`);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  await copyFileBytes(backup, target);
+  await fileSystem.flush?.(target);
+};
+
 const copyFileReliably = async (source: string, target: string): Promise<void> => {
   try {
     await copyFile(source, target);

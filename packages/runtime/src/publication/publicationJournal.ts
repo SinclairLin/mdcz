@@ -53,6 +53,12 @@ export class TemporaryPaths {
     this.#paths.add(temporaryPath);
   }
 
+  /** The file now holds the only copy of what `restoreTo` had, so a failed publication must not remove it. */
+  retainForRecovery(temporaryPath: string, restoreTo: string): void {
+    publicationJournal.record(temporaryPath, restoreTo);
+    this.#paths.delete(temporaryPath);
+  }
+
   /** The file is in place under its final name, so there is nothing left to remove. */
   settle(temporaryPath: string): void {
     this.#paths.delete(temporaryPath);

@@ -2,6 +2,7 @@ import { lstat, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import { type RuntimeLogger, runtimeLoggerService, toErrorMessage } from "../shared";
 import { assertMoveTargetAbsent } from "./MoveOutput";
+import { COPIED_BACKUP_SUFFIX, outputFileSystem, restoreCopiedBackup } from "./outputFileSystem";
 import { type PublicationJournalStore, publicationJournal } from "./publicationJournal";
 
 const exists = async (filePath: string): Promise<boolean> =>
@@ -37,9 +38,14 @@ export const recoverInterruptedPublications = async (
       if (entry.restoreTo === null) {
         await rm(entry.path, { recursive: true, force: true });
       } else if (await exists(entry.path)) {
-        // A crash between parking and relocating a source hides the video behind a dot-prefixed name.
-        await assertMoveTargetAbsent(entry.restoreTo);
-        await rename(entry.path, entry.restoreTo);
+        if (entry.path.startsWith(`${entry.restoreTo}${COPIED_BACKUP_SUFFIX}`)) {
+          await restoreCopiedBackup(outputFileSystem, entry.path, entry.restoreTo);
+          await rm(entry.path, { force: true });
+        } else {
+          // A crash between parking and relocating a source hides the video behind a dot-prefixed name.
+          await assertMoveTargetAbsent(entry.restoreTo);
+          await rename(entry.path, entry.restoreTo);
+        }
       }
       store.forget(entry.path);
     } catch (error) {

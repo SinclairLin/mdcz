@@ -76,6 +76,11 @@ it("journals temporary paths and recovers only those: staging removed, parked so
   await writeFile(replaced, "original fanart");
   publicationJournal.record(truncated);
   await writeFile(truncated, "fan");
+  const nfo = path.join(movie, "movie.nfo");
+  const copied = `${nfo}.mdcz-direct-backup-${randomUUID()}`;
+  publicationJournal.record(copied, nfo);
+  await writeFile(copied, "original NFO");
+  await writeFile(nfo, "truncated NFO");
   const offline = path.join(root, "offline-mount", ".mdcz-staging-offline");
   publicationJournal.record(offline);
   const logger = { warn: vi.fn() };
@@ -89,6 +94,8 @@ it("journals temporary paths and recovers only those: staging removed, parked so
   await expect(readFile(blocked, "utf8")).resolves.toBe("parked cd2");
   await expect(readFile(truncated, "utf8")).resolves.toBe("original fanart");
   expect(existsSync(replaced)).toBe(false);
+  await expect(readFile(nfo, "utf8")).resolves.toBe("original NFO");
+  expect(existsSync(copied)).toBe(false);
   expect(logger.warn).toHaveBeenCalledOnce();
   expect(logger.warn.mock.calls[0]?.[0]).toContain(blocked);
   expect(store.list().map((entry) => entry.path)).toEqual([blocked, offline]);
